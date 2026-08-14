@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Reader - Instant Mail & OTP Fetcher</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #0b0f19; color: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+        .card-bg { background-color: #111827; border: 1px solid #1f2937; }
+        .input-bg { background-color: #0f172a; border: 1px solid #1e293b; }
+        
+        /* Custom scrollbar */
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #0f172a; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* Title Gradient */
+        .gradient-text {
+            background: linear-gradient(135deg, #818cf8 0%, #c084fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body class="min-h-screen py-8 px-4 flex justify-center items-start">
+
+    <div class="w-full max-w-md space-y-5">
+        
+        <!-- Premium Header Section -->
+        <div class="card-bg p-6 rounded-2xl text-center relative overflow-hidden shadow-xl border-indigo-500/20">
+            <div class="absolute -right-10 -top-10 w-32 h-32 bg-indigo-600/10 rounded-full blur-2xl pointer-events-none"></div>
+            <div class="absolute -left-10 -bottom-10 w-32 h-32 bg-purple-600/10 rounded-full blur-2xl pointer-events-none"></div>
+
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-600/20 text-indigo-400 mb-3 border border-indigo-500/30 shadow-inner">
+                <i class="fa-solid fa-envelope-open-text text-xl"></i>
+            </div>
+            
+            <h1 class="text-2xl font-black tracking-wider uppercase gradient-text">EMAIL READER</h1>
+            <p class="text-xs text-slate-400 mt-1 font-medium">Fast & Automatic OTP Extractor from Inbox</p>
+        </div>
+
+        <!-- Credentials Form Box -->
+        <div class="card-bg p-5 rounded-2xl space-y-4 shadow-lg">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center text-xs font-bold tracking-wider text-indigo-400 uppercase gap-2">
+                    <i class="fa-solid fa-key"></i> Account Credentials
+                </div>
+                <!-- Top Dustbin / Clear Button -->
+                <button type="button" id="clearInputBtn" onclick="clearInput()" class="hidden text-[11px] text-red-400 hover:text-red-300 font-semibold transition flex items-center gap-1.5 bg-red-950/40 hover:bg-red-900/50 px-2.5 py-1 rounded-lg border border-red-800/40">
+                    <i class="fa-solid fa-trash-can"></i> Clear
+                </button>
+            </div>
+
+            <form id="otpForm" class="space-y-3">
+                <div>
+                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Account Line Format</label>
+                    <div class="relative">
+                        <input type="text" id="rawInput" required
+                            placeholder="email | pass | refresh_token | client_id" 
+                            class="w-full input-bg text-slate-100 placeholder-slate-600 p-3.5 pr-10 rounded-xl text-xs focus:outline-none focus:border-indigo-500 font-mono transition shadow-inner">
+                        <!-- Inline Clipboard Paste Button -->
+                        <button type="button" id="pasteInputBtn" onclick="pasteFromClipboard()" title="Paste Clipboard Text" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-400 transition bg-slate-800/80 hover:bg-slate-700 p-1.5 rounded-lg border border-slate-700/60">
+                            <i class="fa-solid fa-paste text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quick Copy Buttons Under Input Box -->
+                <div id="quickCopyActions" class="hidden flex gap-2 text-xs pt-1">
+                    <button type="button" onclick="copyEmailFromInput()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 py-2 px-3 rounded-lg border border-slate-700 flex items-center justify-center gap-1.5 transition font-medium">
+                        <i class="fa-regular fa-copy"></i> Copy Email
+                    </button>
+                    <button type="button" onclick="copyFullFromInput()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 py-2 px-3 rounded-lg border border-slate-700 flex items-center justify-center gap-1.5 transition font-medium">
+                        <i class="fa-solid fa-copy"></i> Copy Line
+                    </button>
+                </div>
+
+                <!-- Get Code Button with Loader & Timer -->
+                <button type="submit" id="submitBtn" 
+                    class="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-indigo-600/25 transition active:scale-[0.99] flex items-center justify-center gap-2 tracking-wide">
+                    <span id="btnIcon"><i class="fa-solid fa-bolt"></i></span>
+                    <span id="btnText">GET CODE</span>
+                </button>
+            </form>
+
+            <!-- Instructions -->
+            <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800/80 space-y-1.5 text-xs">
+                <div class="text-indigo-400 font-bold uppercase tracking-wider flex items-center gap-1.5 text-[10px]">
+                    <i class="fa-solid fa-circle-info"></i> Supported Hosts
+                </div>
+                <div class="flex items-center gap-2 text-slate-400 text-[11px]">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    <span>@hotmail, @outlook, @live, @msn</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Result / Output Card -->
+        <div id="outputCard" class="card-bg p-5 rounded-2xl hidden space-y-4 border-indigo-500/30 shadow-xl">
+            <div class="flex justify-between items-center text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-800/80 pb-2">
+                <span>Fetch Result</span>
+                <span id="timerDisplay" class="text-indigo-400 font-mono">0.0s</span>
+            </div>
+
+            <!-- Latest OTP Code Display -->
+            <div id="otpDisplayContainer" class="hidden bg-slate-900/90 p-4 rounded-xl border border-emerald-500/30 text-center space-y-2 shadow-inner">
+                <p class="text-[11px] text-emerald-400 font-bold uppercase tracking-wider flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-circle-check"></i> Latest OTP Auto-Copied!
+                </p>
+                <div id="otpCodeText" class="text-3xl font-black text-white font-mono tracking-widest selection:bg-emerald-500 break-all py-1">------</div>
+            </div>
+
+            <!-- Latest Email Display Box -->
+            <div id="latestEmailContainer" class="space-y-3"></div>
+
+            <!-- More / Previous Emails Trigger Button -->
+            <div id="moreEmailsTrigger" class="hidden pt-1">
+                <button onclick="toggleMoreEmails()" class="w-full py-2.5 px-3 bg-slate-900/80 hover:bg-slate-800 text-indigo-400 font-semibold text-xs rounded-xl border border-indigo-500/30 flex items-center justify-center gap-2 transition">
+                    <i id="moreEmailsIcon" class="fa-solid fa-layer-group"></i>
+                    <span id="moreEmailsText">View Previous Emails</span>
+                </button>
+            </div>
+
+            <!-- Previous Emails List Container (Hidden by default) -->
+            <div id="previousEmailsContainer" class="hidden space-y-3 pt-2 border-t border-slate-800/80"></div>
+
+            <!-- Error Box -->
+            <div id="errorMessage" class="hidden p-3.5 rounded-xl bg-red-950/40 border border-red-800/50 text-red-400 text-xs font-mono"></div>
+        </div>
+
+        <!-- Extended History Card -->
+        <div class="card-bg p-5 rounded-2xl space-y-3 shadow-lg">
+            <div class="flex justify-between items-center pb-1">
+                <div class="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-clock-rotate-left"></i> History 
+                    <span id="historyCountBadge" class="bg-indigo-900/60 text-indigo-300 text-[10px] px-2 py-0.5 rounded-full border border-indigo-700/50 font-mono">0</span>
+                </div>
+                
+                <div class="flex items-center gap-2 text-xs">
+                    <button onclick="deleteSelectedHistory()" id="deleteSelectedBtn" class="text-red-400 hover:text-red-300 hidden font-medium transition flex items-center gap-1">
+                        <i class="fa-solid fa-trash-can"></i> Delete Selected
+                    </button>
+                    <button onclick="clearAllHistory()" id="clearBtn" class="text-slate-400 hover:text-slate-300 hidden font-medium transition">
+                        Clear All
+                    </button>
+                </div>
+            </div>
+
+            <div id="selectAllContainer" class="hidden flex items-center gap-2 text-xs text-slate-400 pb-1 border-b border-slate-800/60">
+                <input type="checkbox" id="selectAllCheckbox" onclick="toggleSelectAll(this)" class="rounded bg-slate-900 border-slate-700 text-indigo-600 focus:ring-0 w-3.5 h-3.5 cursor-pointer">
+                <label for="selectAllCheckbox" class="cursor-pointer select-none text-[11px]">Select All</label>
+            </div>
+            
+            <div id="historyList" class="space-y-2 max-h-[480px] overflow-y-auto pr-1 custom-scroll"></div>
+
+            <!-- Pagination Bar -->
+            <div id="paginationControls" class="hidden flex justify-between items-center text-xs pt-3 border-t border-slate-800 text-slate-400">
+                <button id="prevPageBtn" onclick="changePage(-1)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition">
+                    <i class="fa-solid fa-chevron-left mr-1"></i> Prev
+                </button>
+                <span id="pageIndicator" class="font-mono text-[11px] text-slate-300">Page 1 of 1</span>
+                <button id="nextPageBtn" onclick="changePage(1)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition">
+                    Next <i class="fa-solid fa-chevron-right ml-1"></i>
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const API_URL = "https://code.yamin.bd/api.php?action=fetch";
+        let timerInterval = null;
+        
+        let currentPage = 1;
+        const itemsPerPage = 50;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadHistory();
+            
+            const rawInput = document.getElementById('rawInput');
+            rawInput.addEventListener('input', function() {
+                toggleInputButtons(this.value.trim().length > 0);
+            });
+        });
+
+        function toggleInputButtons(hasText) {
+            const copyDiv = document.getElementById('quickCopyActions');
+            const clearBtn = document.getElementById('clearInputBtn');
+
+            if(hasText) {
+                copyDiv.classList.remove('hidden');
+                clearBtn.classList.remove('hidden');
+            } else {
+                copyDiv.classList.add('hidden');
+                clearBtn.classList.add('hidden');
+            }
+        }
+
+        // ক্লিপবোর্ড থেকে ডাইরেক্ট অটো-পেস্ট করার ফাংশন
+        async function pasteFromClipboard() {
+            try {
+                const text = await navigator.clipboard.readText();
+                if(text) {
+                    const rawInput = document.getElementById('rawInput');
+                    rawInput.value = text.trim();
+                    toggleInputButtons(true);
+                    rawInput.focus();
+                }
+            } catch (err) {
+                alert('Please allow clipboard access permission or paste manually.');
+            }
+        }
+
+        // ইনপুট ক্লিয়ার এবং আগের মেসেজ বডি রিসেট করার ফাংশন
+        function clearInput() {
+            const rawInput = document.getElementById('rawInput');
+            rawInput.value = '';
+            toggleInputButtons(false);
+
+            // আউটপুট রেজাল্ট কার্ড লুকানো
+            document.getElementById('outputCard').classList.add('hidden');
+            document.getElementById('otpDisplayContainer').classList.add('hidden');
+            document.getElementById('latestEmailContainer').innerHTML = '';
+            document.getElementById('previousEmailsContainer').innerHTML = '';
+            document.getElementById('moreEmailsTrigger').classList.add('hidden');
+            document.getElementById('errorMessage').classList.add('hidden');
+
+            rawInput.focus();
+        }
+
+        document.getElementById('otpForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const rawText = document.getElementById('rawInput').value.trim();
+            if(!rawText) return;
+
+            const parts = rawText.split(/[|:]/).map(p => p.trim());
+            const email = parts[0] || '';
+            const password = parts[1] || '';
+            const refreshToken = parts[2] || '';
+            const clientId = parts[3] || 'YOUR_CLIENT_ID';
+
+            if(!email || !refreshToken) {
+                alert("Please check your formatting. Email and refresh token required.");
+                return;
+            }
+
+            saveToHistory({ rawText, email, password, refreshToken, clientId });
+            executeFetch(email, refreshToken, clientId);
+        });
+
+        function executeFetch(email, refreshToken, clientId) {
+            const submitBtn = document.getElementById('submitBtn');
+            const btnIcon = document.getElementById('btnIcon');
+            const btnText = document.getElementById('btnText');
+            
+            const outputCard = document.getElementById('outputCard');
+            const timerDisplay = document.getElementById('timerDisplay');
+            const otpDisplayContainer = document.getElementById('otpDisplayContainer');
+            const latestEmailContainer = document.getElementById('latestEmailContainer');
+            const previousEmailsContainer = document.getElementById('previousEmailsContainer');
+            const moreEmailsTrigger = document.getElementById('moreEmailsTrigger');
+            const errorMessage = document.getElementById('errorMessage');
+
+            outputCard.classList.remove('hidden');
+            otpDisplayContainer.classList.add('hidden');
+            latestEmailContainer.innerHTML = '';
+            previousEmailsContainer.innerHTML = '';
+            previousEmailsContainer.classList.add('hidden');
+            moreEmailsTrigger.classList.add('hidden');
+            errorMessage.classList.add('hidden');
+            
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-80', 'cursor-not-allowed');
+            btnIcon.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin"></i>`;
+            
+            let startTime = Date.now();
+            timerInterval = setInterval(() => {
+                let elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+                btnText.innerText = `FETCHING... (${elapsedTime}s)`;
+                timerDisplay.innerText = `${elapsedTime}s`;
+            }, 100);
+
+            fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, refresh_token: refreshToken, client_id: clientId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                stopLoader();
+                
+                if(data.status) {
+                    let messages = Array.isArray(data.messages) ? data.messages : [];
+                    
+                    let latestOtp = data.code || (messages.length > 0 ? messages[0].code : "");
+                    if (latestOtp) {
+                        document.getElementById('otpCodeText').innerText = latestOtp;
+                        otpDisplayContainer.classList.remove('hidden');
+                        navigator.clipboard.writeText(latestOtp);
+                    }
+
+                    if (messages.length > 0) {
+                        renderSingleEmailCard(messages[0], 0, true, data.email || email, latestEmailContainer);
+
+                        if (messages.length > 1) {
+                            moreEmailsTrigger.classList.remove('hidden');
+                            document.getElementById('moreEmailsText').innerText = `View Previous Emails (${messages.length - 1})`;
+
+                            for (let i = 1; i < messages.length; i++) {
+                                renderSingleEmailCard(messages[i], i, false, data.email || email, previousEmailsContainer);
+                            }
+                        }
+                    } else if(data.message) {
+                        renderSingleEmailFallback(data, email);
+                    }
+
+                } else {
+                    errorMessage.innerText = data.error || 'Failed to fetch OTP code from server.';
+                    errorMessage.classList.remove('hidden');
+                }
+            })
+            .catch(err => {
+                stopLoader();
+                errorMessage.innerText = 'Network or server error.';
+                errorMessage.classList.remove('hidden');
+            });
+        }
+
+        function renderSingleEmailCard(msg, idx, isLatest, recipientEmail, targetContainer) {
+            const senderName = msg.senderName || msg.from || "Unknown Sender";
+            const subject = msg.subject && msg.subject.trim() !== "" ? msg.subject : "(No Subject)";
+            const date = msg.date || "";
+            const fullContent = msg.message || msg.snippet || "";
+            const code = msg.code || "";
+
+            const emailCard = document.createElement('div');
+            emailCard.className = 'bg-slate-900/80 rounded-xl border border-slate-800 overflow-hidden text-xs shadow-lg';
+
+            emailCard.innerHTML = `
+                <button onclick="toggleEmailMsg(${idx})" class="w-full text-left p-3 flex justify-between items-start gap-2 bg-slate-900 hover:bg-slate-800/80 transition">
+                    <div class="flex items-start gap-2.5 min-w-0 flex-1">
+                        <div class="w-7 h-7 rounded-full ${isLatest ? 'bg-indigo-600' : 'bg-slate-700'} text-white font-bold flex items-center justify-center text-[11px] uppercase flex-shrink-0 mt-0.5 shadow">
+                            ${senderName.charAt(0).toUpperCase()}
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="text-slate-200 font-bold truncate">${escapeHtml(senderName)}</span>
+                                <span class="text-[10px] text-slate-500 flex-shrink-0">${escapeHtml(date)}</span>
+                            </div>
+                            <div class="text-slate-300 font-semibold truncate mt-0.5">${escapeHtml(subject)}</div>
+                            ${code ? `<span class="inline-block mt-1 text-[10px] font-mono bg-emerald-950/80 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-800/50">OTP: ${code}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        ${isLatest ? '<span class="text-[9px] bg-indigo-900/80 text-indigo-300 px-1.5 py-0.5 rounded uppercase font-bold border border-indigo-700/50">Latest</span>' : ''}
+                        <i id="emailAccordionIcon-${idx}" class="fa-solid fa-chevron-down text-xs text-slate-400 ml-1"></i>
+                    </div>
+                </button>
+
+                <div id="emailMsgWrapper-${idx}" class="hidden border-t border-slate-800/80">
+                    <div class="px-3 py-1.5 bg-slate-950/60 text-[10px] text-slate-400 border-b border-slate-800/50">
+                        To: <span class="text-slate-300 font-mono">${escapeHtml(recipientEmail)}</span>
+                    </div>
+                    
+                    <div class="bg-[#0f172a]">
+                        <iframe id="iframeMsg-${idx}" class="w-full h-52 border-0"></iframe>
+                    </div>
+                </div>
+            `;
+
+            targetContainer.appendChild(emailCard);
+
+            setTimeout(() => {
+                const iframe = document.getElementById(`iframeMsg-${idx}`);
+                if(iframe) {
+                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                    iframeDoc.open();
+                    let isHtml = /<[a-z][\s\S]*>/i.test(fullContent);
+                    let renderedBody = isHtml ? fullContent : `<pre style="white-space: pre-wrap; font-family: sans-serif; font-size: 13px;">${escapeHtml(fullContent)}</pre>`;
+
+                    iframeDoc.write(`
+                        <html>
+                        <head>
+                            <style>
+                                body { 
+                                    font-family: system-ui, -apple-system, sans-serif; 
+                                    padding: 14px; 
+                                    margin: 0; 
+                                    background-color: #0f172a; 
+                                    color: #cbd5e1; 
+                                    word-break: break-word; 
+                                    font-size: 13px;
+                                    line-height: 1.5;
+                                }
+                                a { color: #818cf8; text-decoration: underline; }
+                                p, div { color: #cbd5e1 !important; }
+                            </style>
+                        </head>
+                        <body>${renderedBody}</body>
+                        </html>
+                    `);
+                    iframeDoc.close();
+                }
+            }, 50);
+        }
+
+        function toggleMoreEmails() {
+            const previousEmailsContainer = document.getElementById('previousEmailsContainer');
+            const moreEmailsIcon = document.getElementById('moreEmailsIcon');
+            const isHidden = previousEmailsContainer.classList.contains('hidden');
+
+            if(isHidden) {
+                previousEmailsContainer.classList.remove('hidden');
+                moreEmailsIcon.className = "fa-solid fa-chevron-up";
+            } else {
+                previousEmailsContainer.classList.add('hidden');
+                moreEmailsIcon.className = "fa-solid fa-layer-group";
+            }
+        }
+
+        function renderSingleEmailFallback(data, defaultEmail) {
+            const container = document.getElementById('latestEmailContainer');
+            container.innerHTML = `
+                <div class="bg-slate-900/90 rounded-xl border border-slate-800 p-3 space-y-2 text-xs">
+                    <div class="text-slate-200 font-bold">${escapeHtml(data.subject || '(No Subject)')}</div>
+                    <div class="bg-[#0f172a] rounded overflow-hidden">
+                        <iframe id="iframeMsg-fallback" class="w-full h-48 border-0"></iframe>
+                    </div>
+                </div>
+            `;
+            setTimeout(() => {
+                const iframe = document.getElementById('iframeMsg-fallback');
+                if(iframe) {
+                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                    iframeDoc.open();
+                    iframeDoc.write(`<html><body style="font-family:sans-serif;padding:12px;background:#0f172a;color:#cbd5e1;">${data.message || ''}</body></html>`);
+                    iframeDoc.close();
+                }
+            }, 50);
+        }
+
+        function toggleEmailMsg(index) {
+            const wrapper = document.getElementById(`emailMsgWrapper-${index}`);
+            const icon = document.getElementById(`emailAccordionIcon-${index}`);
+            if(wrapper) wrapper.classList.toggle('hidden');
+            if(icon) {
+                icon.classList.toggle('fa-chevron-down');
+                icon.classList.toggle('fa-chevron-up');
+            }
+        }
+
+        function escapeHtml(text) {
+            return String(text)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function stopLoader() {
+            clearInterval(timerInterval);
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('opacity-80', 'cursor-not-allowed');
+            document.getElementById('btnIcon').innerHTML = `<i class="fa-solid fa-bolt"></i>`;
+            document.getElementById('btnText').innerText = `GET CODE`;
+        }
+
+        function copyEmailFromInput() {
+            const val = document.getElementById('rawInput').value.trim();
+            if(!val) return;
+            const email = val.split(/[|:]/)[0].trim();
+            navigator.clipboard.writeText(email);
+            alert('Email Copied: ' + email);
+        }
+
+        function copyFullFromInput() {
+            const val = document.getElementById('rawInput').value.trim();
+            if(!val) return;
+            navigator.clipboard.writeText(val);
+            alert('Full Line Copied!');
+        }
+
+        function saveToHistory(item) {
+            let history = JSON.parse(localStorage.getItem('email_otp_history')) || [];
+            history = history.filter(h => h.email !== item.email);
+            history.unshift(item);
+            localStorage.setItem('email_otp_history', JSON.stringify(history));
+            currentPage = 1;
+            loadHistory();
+        }
+
+        function loadHistory() {
+            const historyList = document.getElementById('historyList');
+            const clearBtn = document.getElementById('clearBtn');
+            const badge = document.getElementById('historyCountBadge');
+            const paginationControls = document.getElementById('paginationControls');
+            const selectAllContainer = document.getElementById('selectAllContainer');
+            const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+
+            const history = JSON.parse(localStorage.getItem('email_otp_history')) || [];
+
+            badge.innerText = history.length;
+            historyList.innerHTML = '';
+            document.getElementById('selectAllCheckbox').checked = false;
+            deleteSelectedBtn.classList.add('hidden');
+
+            if(history.length === 0) {
+                historyList.innerHTML = '<p class="text-xs text-slate-500 text-center py-6">No history saved yet.</p>';
+                clearBtn.classList.add('hidden');
+                paginationControls.classList.add('hidden');
+                selectAllContainer.classList.add('hidden');
+                return;
+            }
+
+            clearBtn.classList.remove('hidden');
+            selectAllContainer.classList.remove('hidden');
+
+            const totalPages = Math.ceil(history.length / itemsPerPage);
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const currentItems = history.slice(startIndex, endIndex);
+
+            currentItems.forEach((item, index) => {
+                const actualIndex = startIndex + index;
+                const div = document.createElement('div');
+                div.className = 'relative bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 text-xs flex justify-between items-center hover:border-indigo-500/40 transition gap-2';
+
+                div.innerHTML = `
+                    <div class="flex items-center gap-2 min-w-0 flex-1">
+                        <input type="checkbox" value="${actualIndex}" onchange="updateDeleteSelectedVisibility()" class="history-checkbox rounded bg-slate-950 border-slate-700 text-indigo-600 focus:ring-0 w-3.5 h-3.5 cursor-pointer flex-shrink-0">
+                        
+                        <div class="truncate flex-1 cursor-pointer" onclick="selectHistory(${actualIndex})">
+                            <p class="text-slate-200 font-medium truncate">${item.email}</p>
+                            <p class="text-slate-500 font-mono text-[10px] truncate">${item.rawText}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-1 flex-shrink-0">
+                        <button onclick="copySingleEmail(event, '${item.email}')" title="Copy Email" class="text-slate-400 hover:text-indigo-400 bg-slate-800/80 hover:bg-slate-700 p-1.5 rounded-lg border border-slate-700/60 transition text-[11px] flex items-center gap-1">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
+                        
+                        <button onclick="copyFullFormat(event, ${actualIndex})" title="Copy Full Line" class="text-slate-400 hover:text-indigo-400 bg-slate-800/80 hover:bg-slate-700 p-1.5 rounded-lg border border-slate-700/60 transition text-[11px] flex items-center gap-1">
+                            <i class="fa-solid fa-copy"></i>
+                        </button>
+                    </div>
+                `;
+                historyList.appendChild(div);
+            });
+
+            if (totalPages > 1) {
+                paginationControls.classList.remove('hidden');
+                document.getElementById('pageIndicator').innerText = `Page ${currentPage} of ${totalPages}`;
+                document.getElementById('prevPageBtn').disabled = currentPage === 1;
+                document.getElementById('nextPageBtn').disabled = currentPage === totalPages;
+            } else {
+                paginationControls.classList.add('hidden');
+            }
+        }
+
+        function toggleSelectAll(master) {
+            const checkboxes = document.querySelectorAll('.history-checkbox');
+            checkboxes.forEach(cb => cb.checked = master.checked);
+            updateDeleteSelectedVisibility();
+        }
+
+        function updateDeleteSelectedVisibility() {
+            const checkedCount = document.querySelectorAll('.history-checkbox:checked').length;
+            const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+            if (checkedCount > 0) {
+                deleteSelectedBtn.classList.remove('hidden');
+            } else {
+                deleteSelectedBtn.classList.add('hidden');
+            }
+        }
+
+        function deleteSelectedHistory() {
+            const checkedBoxes = document.querySelectorAll('.history-checkbox:checked');
+            if (checkedBoxes.length === 0) return;
+
+            if (confirm(`Delete ${checkedBoxes.length} selected item(s)?`)) {
+                let history = JSON.parse(localStorage.getItem('email_otp_history')) || [];
+                const indicesToDelete = Array.from(checkedBoxes).map(cb => parseInt(cb.value)).sort((a, b) => b - a);
+                
+                indicesToDelete.forEach(idx => {
+                    history.splice(idx, 1);
+                });
+
+                localStorage.setItem('email_otp_history', JSON.stringify(history));
+                loadHistory();
+            }
+        }
+
+        function changePage(direction) {
+            currentPage += direction;
+            loadHistory();
+            document.getElementById('historyList').scrollTop = 0;
+        }
+
+        function selectHistory(index) {
+            const history = JSON.parse(localStorage.getItem('email_otp_history')) || [];
+            const item = history[index];
+            if(item) {
+                document.getElementById('rawInput').value = item.rawText;
+                toggleInputButtons(true);
+                executeFetch(item.email, item.refreshToken, item.clientId);
+            }
+        }
+
+        function copySingleEmail(event, email) {
+            event.stopPropagation();
+            navigator.clipboard.writeText(email);
+            alert('Email copied: ' + email);
+        }
+
+        function copyFullFormat(event, index) {
+            event.stopPropagation();
+            const history = JSON.parse(localStorage.getItem('email_otp_history')) || [];
+            if(history[index]) {
+                navigator.clipboard.writeText(history[index].rawText);
+                alert('Full Line Copied!');
+            }
+        }
+
+        function clearAllHistory() {
+            if(confirm("Are you sure you want to delete all saved history?")) {
+                localStorage.removeItem('email_otp_history');
+                currentPage = 1;
+                loadHistory();
+            }
+        }
+    </script>
+</body>
+</html>
